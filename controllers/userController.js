@@ -1,4 +1,4 @@
-const userModels = require("../models/userModel");
+const userModels = require("../models/userModels");
 
 const getUsers = async (req, res) => {
   try {
@@ -9,6 +9,33 @@ const getUsers = async (req, res) => {
     res.status(500).send(error);
   }
 };
+const getUserByEmail = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      res.status(401).send("check your email and password");
+    } else {
+      const [user] = await userModels.getUserByEmail(email);
+      if (!user.length) {
+        res.status(404).send("Not found");
+      }
+      const isMatch = await argon2.verify(user[0].hashedPassword, password);
+      if (!isMatch) {
+        res.status(401).send("mot de pass ou email erronné");
+      } else {
+        const token = jwt.sign({ user_id: user[0].id }, "privateKey", {
+          expiresIn: "1h",
+        });
+
+        res
+          .status(200)
+          .json({ message: `welcome back ${user[0].firstname} !`, token });
+      }
+    }
+  } catch (error) {
+    res.status(500).send(error);
+  }};
 
 const addUser = async (req, res) => {
   try {
@@ -35,4 +62,5 @@ const addUser = async (req, res) => {
 module.exports = {
   getUsers,
   addUser,
+  getUserByEmail,
 };

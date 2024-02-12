@@ -16,6 +16,9 @@ const addUser = (
     [firstname, lastname, email, city, language, hashedPassword]
   );
 };
+  getUserByEmail= (value) => {
+    return this.database.query("select * from users where email = ?", [value]);
+  };
 module.exports = {
   getUsers,
   addUser,

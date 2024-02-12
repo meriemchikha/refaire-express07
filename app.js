@@ -12,6 +12,8 @@ const port = process.env.APP_PORT;
 
 app.use(router);
 
+app.use(verifyToken);
+
 app.listen(port, () => {
   console.log(`Server listening on http://localhost:${port}`);
 });
