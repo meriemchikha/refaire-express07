@@ -1,4 +1,5 @@
 const argon2 = require("argon2");
+const jwt = require("jsonwebtoken");
 
 const hashingOptions = {
   type: argon2.argon2id,
@@ -7,17 +8,13 @@ const hashingOptions = {
   parallelism: 1,
 };
 
-const jwt = require("jsonwebtoken");
-
-
 const hashPassword = (req, res, next) => {
   argon2
     .hash(req.body.password, hashingOptions)
-    .then((hashedPassword) => {
-
-      req.body.hashedPassword = hashedPassword;
+    .then((hashdPassword) => {
+      console.log(hashdPassword);
+      req.body.hashdPassword = hashdPassword;
       delete req.body.password;
-
       next();
     })
     .catch((err) => {
@@ -28,16 +25,14 @@ const hashPassword = (req, res, next) => {
 
 const verifyPassword = (req, res) => {
   argon2
-    .verify(req.user.hashedPassword, req.body.password)
+    .verify(req.user.hashdPassword, req.body.password)
     .then((isVerified) => {
       if (isVerified) {
         const payload = { sub: req.user.id };
-
-        const token = jwt.sign(payload, `${process.env.JWT_SECRET_KEY}`, {
+        const token = jwt.sign(payload, process.env.JWT_SECRET, {
           expiresIn: "1h",
         });
-
-        delete req.user.hashedPassword;
+        delete req.user.hashdPassword;
         res.send({ token, user: req.user });
       } else {
         res.sendStatus(401);
@@ -52,19 +47,14 @@ const verifyPassword = (req, res) => {
 const verifyToken = (req, res, next) => {
   try {
     const authorizationHeader = req.get("Authorization");
-
     if (authorizationHeader == null) {
       throw new Error("Authorization header is missing");
     }
-
     const [type, token] = authorizationHeader.split(" ");
-
     if (type !== "Bearer") {
       throw new Error("Authorization header has not the 'Bearer' type");
     }
-
-    req.payload = jwt.verify(token, process.env.JWT_SECRET_KEY);
-
+    req.payload = jwt.verify(token, process.env.JWT_SECRET);
     next();
   } catch (err) {
     console.error(err);
@@ -72,9 +62,8 @@ const verifyToken = (req, res, next) => {
   }
 };
 
-
 module.exports = {
   hashPassword,
   verifyPassword,
-  verifyToken
+  verifyToken,
 };

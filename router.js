@@ -1,27 +1,31 @@
-const userController = require("./controllers/userController");
-const movieHandlers = require("./middlewares/movieHandlers");
 const express = require("express");
 const { hashPassword, verifyPassword, verifyToken }  = require("./middlewares/hashPassword");
- 
+const movieControllers = require("./controllers/movieControllers");
+const userControllers = require("./controllers/userControllers");
+const movieHandlers = require("./middlewares/movieHandlers");
+const userHandlers = require("./middlewares/userHandlers");
+
+
 const router = express.Router();
-
-
-// route users
+// les routes publiques
  
-router.get("/users", userController.getUsers);
-router.post("/users", hashPassword, userController.addUser);
+router.get("/api/movies", movieControllers.getMovies);
+router.get("/api/movies/:id", movieControllers.getMovieById);
+router.get("/api/users", userControllers.getUsers);
+router.get("/api/users/:id", userControllers.getUserByEmail);
+router.post("/api/users", userHandlers, hashPassword, userControllers.postUser);
 router.post(
   "/api/login",
-  hashPassword.getUserByEmailWithPasswordAndPassToNext,
+  userControllers.getUserByEmailWithPasswordAndPassToNext,
   verifyPassword
-); 
+);
+// les routes à protéger
+router.post("/api/movies", verifyToken, movieControllers.postMovie);
+router.put("/api/movies/:id", movieHandlers, movieControllers.putMovie);
+router.delete("/api/movies/:id", movieControllers.deleteMovie);
+router.put("/api/users/:id", userHandlers, hashPassword, userControllers.putUser);
+router.delete("/api/users/:id", userControllers.deleteUser);
 
-// route movies
-router.get("/api/movies", movieHandlers.getMovies);
-router.get("/api/movies/:id", movieHandlers.getMovieById);
-router.post("/api/movies" ,movieHandlers.postMovie);
-router.put("/api/movies/:id", movieHandlers.updateMovie);
-router.delete("/api/movies/:id", movieHandlers.deleteMovie);
 
 
 

@@ -1,33 +1,52 @@
+const movies = [
+  {
+    id: 1,
+    title: "Citizen Kane",
+    director: "Orson Wells",
+    year: "1941",
+    color: false,
+    duration: 120,
+  },
+  {
+    id: 2,
+    title: "The Godfather",
+    director: "Francis Ford Coppola",
+    year: "1972",
+    color: true,
+    duration: 180,
+  },
+  {
+    id: 3,
+    title: "Pulp Fiction",
+    director: "Quentin Tarantino",
+    year: "1994",
+    color: true,
+    duration: 180,
+  },
+];
+
 const database = require("../database");
 
+// Sélectionner tous les films
 const getMovies = (req, res) => {
-  const initialSql = "select * from movies";
-  const where = [];
+  let sql = "select * from movies";
+  const sqlValues = [];
 
   if (req.query.color != null) {
-    where.push({
-      column: "color",
-      value: req.query.color,
-      operator: "=",
-    });
-  }
-  if (req.query.max_duration != null) {
-    where.push({
-      column: "duration",
-      value: req.query.max_duration,
-      operator: "<=",
-    });
+    sql += " where color = ?";
+    sqlValues.push(req.query.color);
+
+    if (req.query.max_duration != null) {
+      sql += " and duration <= ?";
+      sqlValues.push(req.query.max_duration);
+    }
+  } else if (req.query.max_duration != null) {
+    sql += " where duration <= ?";
+    sqlValues.push(req.query.max_duration);
   }
 
   database
-    .query(
-      where.reduce(
-        (sql, { column, operator }, index) =>
-          `${sql} ${index === 0 ? "where" : "and"} ${column} ${operator} ?`,
-        initialSql
-      ),
-      where.map(({ value }) => value)
-    )
+    .query(sql, sqlValues)
     .then(([movies]) => {
       res.json(movies);
     })
@@ -37,6 +56,7 @@ const getMovies = (req, res) => {
     });
 };
 
+// Sélectionner un film par id
 const getMovieById = (req, res) => {
   const id = parseInt(req.params.id);
 
@@ -46,15 +66,16 @@ const getMovieById = (req, res) => {
       if (movies[0] != null) {
         res.json(movies[0]);
       } else {
-        res.status(404).send("Not Found");
+        res.sendStatus(404);
       }
     })
     .catch((err) => {
       console.error(err);
-      res.status(500).send("Error retrieving data from database");
+      res.sendStatus(500);
     });
 };
 
+// Créer un film et l'ajouter dans la BDD
 const postMovie = (req, res) => {
   const { title, director, year, color, duration } = req.body;
 
@@ -64,15 +85,16 @@ const postMovie = (req, res) => {
       [title, director, year, color, duration]
     )
     .then(([result]) => {
-      res.location(`/api/movies/${result.insertId}`).sendStatus(201);
+      res.status(201).send({ id: result.insertId });
     })
     .catch((err) => {
       console.error(err);
-      res.status(500).send("Error saving the movie");
+      res.sendStatus(500);
     });
 };
 
-const updateMovie = (req, res) => {
+// Update un film existant
+const putMovie = (req, res) => {
   const id = parseInt(req.params.id);
   const { title, director, year, color, duration } = req.body;
 
@@ -83,17 +105,18 @@ const updateMovie = (req, res) => {
     )
     .then(([result]) => {
       if (result.affectedRows === 0) {
-        res.status(404).send("Not Found");
+        res.sendStatus(404);
       } else {
         res.sendStatus(204);
       }
     })
     .catch((err) => {
       console.error(err);
-      res.status(500).send("Error editing the movie");
+      res.sendStatus(500);
     });
 };
 
+// supprimer un film
 const deleteMovie = (req, res) => {
   const id = parseInt(req.params.id);
 
@@ -101,14 +124,14 @@ const deleteMovie = (req, res) => {
     .query("delete from movies where id = ?", [id])
     .then(([result]) => {
       if (result.affectedRows === 0) {
-        res.status(404).send("Not Found");
+        res.sendStatus(404);
       } else {
         res.sendStatus(204);
       }
     })
     .catch((err) => {
       console.error(err);
-      res.status(500).send("Error deleting the movie");
+      res.sendStatus(500);
     });
 };
 
@@ -116,6 +139,6 @@ module.exports = {
   getMovies,
   getMovieById,
   postMovie,
-  updateMovie,
+  putMovie,
   deleteMovie,
 };
